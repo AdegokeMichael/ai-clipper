@@ -16,7 +16,7 @@ Setup (takes ~10 minutes):
 1. console.cloud.google.com → Enable "YouTube Data API v3"
 2. APIs & Services > Credentials → Create OAuth 2.0 Client ID (Desktop app)
 3. Download the client_secret JSON → set YOUTUBE_CLIENT_SECRETS_FILE in .env
-4. Run once: python cli.py youtube-auth  (opens browser, saves token)
+4. Run once: python cli.py youtube-auth  (opens browser, saves token).
 
 Required env vars:
   YOUTUBE_CLIENT_SECRETS_FILE   path to downloaded client_secret JSON
