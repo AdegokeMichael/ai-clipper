@@ -2,7 +2,7 @@
 app/platforms/tiktok.py
 
 TikTok Content Posting API.
-Requires business account + API approval (2-3 days review).
+Requires business account + API approval (2-3 days review)
 Get credentials at: https://developers.tiktok.com
 
 Required env vars:
