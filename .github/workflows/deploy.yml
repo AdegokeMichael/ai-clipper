@@ -11,7 +11,7 @@
 #    PROD_SSH_HOST      — server IP or domain
 #    PROD_SSH_USER      — e.g. "ubuntu" or "azureuser"
 #    PROD_SSH_KEY       — full private key (contents of .pem file)
-#    PROD_APP_DIR       — absolute path on server, e.g. /home/ubuntu/mrbade-autoposter
+#    PROD_APP_DIR       — absolute path on server, e.g. /home/ubuntu/ai-clipper
 #
 #  Optional:
 #    SLACK_WEBHOOK_URL  — if set, posts deploy success/failure to Slack
