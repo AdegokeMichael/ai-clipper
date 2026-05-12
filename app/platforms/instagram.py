@@ -2,9 +2,9 @@
 app/platforms/instagram.py — Instagram Reels via Meta Graph API.
 
 Production hardening applied:
-  - Polling loop extended to 30 by 10 s = 300 s max wait.
+  - Polling loop extended to 30 x 10 s = 300 s max wait.
     Large videos (100 to 200 MB) routinely take 2 to3 minutes to process on Meta's
-    servers; the original 15 by 5 s = 75 s cap caused spurious failures.
+    servers; the original 15 x 5 s = 75 s cap caused spurious failures.
   - Explicit timeout on all httpx calls.
   - Error details logged before raising so failures are diagnosable.
 
