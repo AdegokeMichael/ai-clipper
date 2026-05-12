@@ -1,0 +1,32 @@
+# /etc/systemd/system/gdrive-sync.service
+#
+# Google Drive folder watcher — service account auth (never expires).
+# Replaces the rclone-based gdrive_sync.sh service.
+#
+# Setup:
+#   sudo cp scripts/gdrive-sync.service /etc/systemd/system/gdrive-sync.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable gdrive-sync
+#   sudo systemctl start gdrive-sync
+#
+# Logs:
+#   sudo journalctl -u gdrive-sync -f
+#   cat logs/gdrive_sync.log
+
+[Unit]
+Description=Brand Bade Poster — Google Drive Watcher (Service Account)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-autoposting-agent
+ExecStart=/home/ubuntu/ai-autoposting-agent/venv/bin/python3 scripts/gdrive_watch.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

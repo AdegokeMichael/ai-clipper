@@ -1,0 +1,156 @@
+
+#  docker-compose.prod.yml PRODUCTION (Azure)
+#
+#  Three services:
+#    autoposter      FastAPI app (internal only, Nginx fronts it)
+#    gdrive-watcher  Google Drive polling (service-account, never expires)
+#    nginx           Reverse proxy on port 80 / 443
+#
+#  First-time setup:
+#    cp .env.example .env && nano .env
+#    python cli.py youtube-auth   # generates youtube_token.json
+#
+#  Deploy:
+#    docker compose -f docker-compose.prod.yml up -d --build
+#
+#  Rolling update (zero downtime via CI  see .github/workflows/deploy.yml):
+#    export IMAGE_TAG=<git-sha>
+#    docker compose -f docker-compose.prod.yml up -d --no-deps autoposter
+#
+#  Clean old images after deploy:
+#    docker image prune -f
+# 
+
+# IMAGE_TAG is set by CI to the git short SHA (e.g. a1b2c3d).
+# Fallback to "latest" only for manual deployments where a tag isn't provided.
+x-image: &app-image brandbade-autoposter:${IMAGE_TAG:-latest}
+
+services:
+
+  #  Main application 
+  autoposter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${IMAGE_TAG:-local}
+        BUILD_DATE: ${BUILD_DATE:-unknown}
+        GIT_SHA: ${IMAGE_TAG:-unknown}
+    image: *app-image
+    container_name: brandbade-autoposter
+    restart: always
+    env_file:
+      - .env
+    # Port NOT exposed publicly  Nginx handles all inbound traffic
+    expose:
+      - "8000"
+    volumes:
+      #  Persistent data 
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./overlays:/app/overlays
+      - ./logs:/app/logs
+      #  Watch folders 
+      - ./gdrive_inbox:/app/gdrive_inbox
+      - ./watch_inbox:/app/watch_inbox
+      - ./watch_processed:/app/watch_processed
+      #  Credentials (copy to server manually; all gitignored) 
+      - ./gdrive_service_account.json:/app/gdrive_service_account.json:ro
+      - ./youtube_token.json:/app/youtube_token.json   # writable: token refreshes
+      - ./client_secret.json:/app/client_secret.json:ro
+      #  Whisper model cache 
+      - whisper_cache:/home/appuser/.cache
+    # Proper PID-1 signal forwarding (ensures uvicorn gets SIGTERM, not SIGKILL)
+    init: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Resource limits  prevents OOM and runaway CPU on a shared Azure VM
+    deploy:
+      resources:
+        limits:
+          cpus: "3.0"
+          memory: 6G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    networks:
+      - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  #  Google Drive watcher 
+  gdrive-watcher:
+    image: *app-image        # Reuses the image built above  no second build
+    container_name: brandbade-gdrive
+    restart: always
+    env_file:
+      - .env
+    command: ["python", "scripts/gdrive_watch.py"]
+    volumes:
+      - ./logs:/app/logs
+      - ./gdrive_inbox:/app/gdrive_inbox
+      - ./gdrive_service_account.json:/app/gdrive_service_account.json:ro
+    init: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    depends_on:
+      autoposter:
+        condition: service_healthy
+    networks:
+      - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  #  Nginx reverse proxy 
+  nginx:
+    image: nginx:1.27-alpine   # Pinned minor version  avoids surprise upgrades
+    container_name: brandbade-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # SSL certs  mount after running: sudo certbot certonly --standalone -d yourdomain.com
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      # Serve clip videos directly via Nginx (bypasses Python/FastAPI entirely)
+      - ./output/clips:/var/www/clips:ro
+    depends_on:
+      autoposter:
+        condition: service_healthy
+    networks:
+      - internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+#  Shared internal network 
+# "internal: true" blocks outbound internet from all containers except Nginx.
+# Remove "internal: true" if any service needs direct outbound internet access.
+networks:
+  internal:
+    driver: bridge
+
+#  Named volumes 
+volumes:
+  whisper_cache:

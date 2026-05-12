@@ -1,0 +1,1 @@
+# AI Clipper app package

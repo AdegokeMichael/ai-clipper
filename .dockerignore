@@ -1,0 +1,54 @@
+# ─────────────────────────────────────────────────────────────
+#  .dockerignore — AI Clipper Docker Build Exclusions
+#  Files and directories excluded from the Docker build context
+# ─────────────────────────────────────────────────────────────
+
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+*.egg-info/
+
+# Runtime data — these are mounted as volumes, not baked into image
+uploads/
+output/
+logs/
+gdrive_inbox/
+watch_inbox/
+watch_processed/
+gdrive_seen.txt
+
+# Credentials — NEVER bake these into the image
+.env
+gdrive_service_account.json
+youtube_token.json
+client_secret.json
+*.pem
+*.key
+
+# Brand template backups
+overlays/template_backup_*.png
+
+# Dev / editor
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Docs
+*.md
+*.docx
+*.zip
+
+# Docker (no recursive Docker builds)
+Dockerfile*
+docker-compose*.yml

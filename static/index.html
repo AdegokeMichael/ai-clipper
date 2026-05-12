@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Clipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root{
+  --bg:       #0E0C0A;
+  --surface:  #181410;
+  --surface2: #211D18;
+  --surface3: #2B2520;
+  --border:   #332C24;
+  --border2:  #3E352A;
+
+  --accent:   #FF6500;
+  --accent-h: #FF8533;
+  --accent-d: #CC5200;
+
+  --green:    #22C55E;
+  --red:      #EF4444;
+  --amber:    #F59E0B;
+  --blue:     #3B82F6;
+
+  --text:     #F5EFE6;
+  --text2:    #C4B49E;
+  --muted:    #7A6A58;
+  --faint:    #3E352A;
+
+  --yt:#FF0000; --ig:#E1306C; --fb:#1877F2; --tt:#ffffff; --up:#4ECDC4;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  min-height:100vh;
+  font-size:14px;
+  line-height:1.6;
+  /* warm noise texture */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+}
+a{color:var(--accent);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code,kbd{font-family:'DM Mono',monospace;font-size:.82em;background:var(--surface2);padding:2px 7px;border-radius:5px;color:var(--text2);}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header{
+  border-bottom:1px solid var(--border);
+  padding:0 32px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  position:sticky;top:0;
+  background:rgba(14,12,10,.92);
+  backdrop-filter:blur(12px);
+  z-index:100;
+}
+
+.logo{
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:1.15rem;
+  letter-spacing:-.3px;
+  display:flex;align-items:center;gap:10px;
+  color:var(--text);
+}
+.logo-flame{
+  width:28px;height:28px;
+  background:var(--accent);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;
+  box-shadow:0 0 16px rgba(255,101,0,.4);
+  animation:flamepulse 3s ease-in-out infinite;
+}
+@keyframes flamepulse{0%,100%{box-shadow:0 0 16px rgba(255,101,0,.4)}50%{box-shadow:0 0 28px rgba(255,101,0,.7)}}
+
+.nav-tabs{display:flex;gap:2px;}
+.nav-tab{
+  background:transparent;
+  border:none;
+  color:var(--muted);
+  padding:8px 16px;
+  border-radius:var(--r-sm);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.82rem;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .15s;
+  letter-spacing:.01em;
+}
+.nav-tab:hover{color:var(--text2);background:var(--surface);}
+.nav-tab.active{
+  color:var(--text);
+  background:var(--surface);
+  border:1px solid var(--border2);
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+.page{display:none;}.page.active{display:block;}
+.container{max-width:1140px;margin:0 auto;padding:36px 32px;}
+.section{margin-bottom:40px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.section-title{
+  font-family:'Syne',sans-serif;
+  font-weight:700;
+  font-size:1rem;
+  color:var(--text);
+  letter-spacing:.01em;
+}
+
+/* ═══════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════ */
+.upload-zone{
+  position:relative;
+  border-radius:var(--r-xl);
+  padding:56px 40px;
+  text-align:center;
+  cursor:pointer;
+  overflow:hidden;
+  transition:all .25s;
+  background:var(--surface);
+  /* animated dashed border via SVG background */
+  background-image:
+    url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='24' ry='24' stroke='%23332C24' stroke-width='2' stroke-dasharray='8 6' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e"),
+    linear-gradient(135deg, var(--surface) 0%, var(--surface2) 100%);
+}
+.upload-zone:hover,.upload-zone.drag-over{
+  background-image:
+    url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='24' ry='24' stroke='%23FF6500' stroke-width='2' stroke-dasharray='8 6' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e"),
+    linear-gradient(135deg, var(--surface) 0%, rgba(255,101,0,.05) 100%);
+}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+.upload-icon-wrap{
+  width:64px;height:64px;
+  background:var(--surface3);
+  border:1px solid var(--border2);
+  border-radius:var(--r-lg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;
+  margin:0 auto 16px;
+  transition:all .25s;
+}
+.upload-zone:hover .upload-icon-wrap{
+  background:rgba(255,101,0,.1);
+  border-color:var(--accent);
+}
+.upload-zone h2{
+  font-family:'Syne',sans-serif;
+  font-size:1.2rem;font-weight:700;
+  margin-bottom:6px;
+}
+.upload-zone p{color:var(--muted);font-size:.85rem;}
+
+.progress-bar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;display:none;margin-top:14px;}
+.progress-fill{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent-h));
+  border-radius:2px;
+  transition:width .3s;
+  position:relative;
+  overflow:hidden;
+}
+.progress-fill::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent);
+  animation:sweep 1.4s infinite;
+}
+@keyframes sweep{from{transform:translateX(-100%)}to{transform:translateX(200%)}}
+
+.status-bar{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+  padding:14px 18px;
+  display:none;align-items:center;gap:12px;
+  font-size:.83rem;
+  color:var(--text2);
+  margin-top:12px;
+}
+.spinner{
+  width:16px;height:16px;
+  border:2px solid var(--border2);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ═══════════════════════════════════════════
+   FILTER PILLS
+═══════════════════════════════════════════ */
+.filters{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-btn{
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--muted);
+  padding:6px 16px;
+  border-radius:100px;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.78rem;
+  font-weight:500;
+  cursor:pointer;
+  transition:all .15s;
+}
+.filter-btn:hover{color:var(--text2);border-color:var(--border2);}
+.filter-btn.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+  font-weight:600;
+}
+
+/* ═══════════════════════════════════════════
+   CLIP GRID
+═══════════════════════════════════════════ */
+.clips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;}
+
+.clip-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  overflow:hidden;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  animation:riseUp .35s ease both;
+}
+@keyframes riseUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.clip-card:hover{
+  transform:translateY(-3px);
+  border-color:var(--border2);
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+}
+
+/* Video preview */
+.clip-video-wrap{
+  position:relative;
+  aspect-ratio:9/16;
+  background:#000;
+  max-height:220px;
+  overflow:hidden;
+}
+.clip-video-wrap video{width:100%;height:100%;object-fit:cover;display:block;}
+
+/* Overlay gradient for readability */
+.clip-video-wrap::after{
+  content:'';
+  position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(to top,rgba(0,0,0,.7),transparent);
+  pointer-events:none;
+}
+
+.hook-score{
+  position:absolute;top:10px;right:10px;
+  font-family:'DM Mono',monospace;
+  font-size:.7rem;font-weight:500;
+  padding:4px 10px;border-radius:100px;
+  backdrop-filter:blur(8px);
+  border:1px solid transparent;
+}
+/* Color scale for hook score */
+.hook-score.score-low{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.5);color:#ef4444;}
+.hook-score.score-mid{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5);color:#f59e0b;}
+.hook-score.score-high{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.5);color:#22c55e;}
+
+.clip-status-badge{
+  position:absolute;top:10px;left:10px;
+  font-size:.65rem;font-weight:700;
+  padding:3px 10px;border-radius:100px;
+  text-transform:uppercase;letter-spacing:.08em;
+  backdrop-filter:blur(8px);
+}
+.badge-pending {background:rgba(245,158,11,.2);color:var(--amber);border:1px solid rgba(245,158,11,.4);}
+.badge-approved{background:rgba(34,197,94,.2);color:var(--green);border:1px solid rgba(34,197,94,.4);}
+.badge-rejected{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.badge-posted  {background:rgba(255,101,0,.2);color:var(--accent);border:1px solid rgba(255,101,0,.4);}
+.badge-failed  {background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+
+/* Card body */
+.clip-body{padding:16px;}
+
+.clip-topic{
+  font-family:'Syne',sans-serif;
+  font-weight:700;font-size:.95rem;
+  margin-bottom:5px;line-height:1.3;
+  color:var(--text);
+}
+.clip-hook{
+  font-size:.78rem;color:var(--muted);
+  margin-bottom:12px;
+  font-style:italic;line-height:1.55;
+  border-left:2px solid var(--border2);
+  padding-left:10px;
+}
+.clip-meta{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.meta-pill{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  padding:3px 10px;border-radius:100px;
+  font-family:'DM Mono',monospace;
+  font-size:.68rem;color:var(--muted);
+}
+
+/* Caption */
+.caption-area{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:12px;margin-bottom:12px;
+}
+.caption-label{
+  font-size:.65rem;font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:7px;
+}
+.caption-text{font-size:.8rem;line-height:1.65;white-space:pre-wrap;color:var(--text2);}
+.caption-edit{
+  width:100%;background:transparent;border:none;
+  color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.8rem;line-height:1.65;
+  resize:vertical;min-height:80px;outline:none;
+}
+
+/* Hashtags */
+.hashtags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;}
+.hashtag{
+  background:rgba(255,101,0,.08);
+  color:var(--accent);
+  border:1px solid rgba(255,101,0,.2);
+  padding:3px 10px;border-radius:100px;
+  font-size:.7rem;font-weight:500;
+  transition:background .15s;
+}
+.hashtag:hover{background:rgba(255,101,0,.15);}
+
+/* ═══════════════════════════════════════════
+   PLATFORM SELECTOR
+═══════════════════════════════════════════ */
+.platform-selector{margin-bottom:14px;}
+.platform-label{
+  font-size:.65rem;font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:8px;
+}
+.platform-btns{display:flex;gap:6px;flex-wrap:wrap;}
+.platform-btn{
+  display:flex;align-items:center;gap:5px;
+  padding:6px 13px;border-radius:var(--r-sm);
+  border:1px solid var(--border);
+  background:var(--surface2);
+  color:var(--muted);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.75rem;font-weight:500;
+  cursor:pointer;transition:all .15s;
+}
+.platform-btn:hover:not(.disabled){color:var(--text2);border-color:var(--border2);}
+.platform-btn.disabled{opacity:.3;cursor:not-allowed;}
+.platform-btn.posted-platform{opacity:.5;cursor:default;}
+.platform-btn[data-p="youtube"].selected{background:rgba(255,0,0,.12);border-color:var(--yt);color:var(--yt);}
+.platform-btn[data-p="tiktok"].selected{background:rgba(255,255,255,.08);border-color:#aaa;color:#fff;}
+.platform-btn[data-p="instagram"].selected{background:rgba(225,48,108,.12);border-color:var(--ig);color:var(--ig);}
+.platform-btn[data-p="facebook"].selected{background:rgba(24,119,242,.12);border-color:var(--fb);color:var(--fb);}
+  .platform-btn[data-p="tiktok_uploadpost"].selected{background:rgba(78,205,196,.12);border-color:var(--up);color:var(--up);}
+  .platform-btn[data-p="instagram_uploadpost"].selected{background:rgba(78,205,196,.12);border-color:var(--up);color:var(--up);}
+  .platform-btn[data-p="facebook_uploadpost"].selected{background:rgba(78,205,196,.12);border-color:var(--up);color:var(--up);}
+
+.posted-urls{margin-bottom:12px;}
+.posted-url-row{display:flex;align-items:center;gap:8px;font-size:.75rem;margin-bottom:4px;color:var(--muted);}
+.posted-url-row a{color:var(--accent);}
+
+/* ═══════════════════════════════════════════
+   CLIP ACTIONS
+═══════════════════════════════════════════ */
+.clip-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* ═══════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════ */
+.btn{
+  padding:10px 18px;border-radius:var(--r-sm);border:none;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.8rem;font-weight:600;
+  cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  letter-spacing:.01em;
+}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+
+/* Primary — orange CTA */
+.btn-primary,.btn-post{
+  background:var(--accent);
+  color:#fff;
+  border:1px solid var(--accent);
+  grid-column:1/-1;
+  box-shadow:0 2px 12px rgba(255,101,0,.3);
+}
+.btn-primary:hover:not(:disabled),.btn-post:hover:not(:disabled){
+  background:var(--accent-h);
+  box-shadow:0 4px 20px rgba(255,101,0,.45);
+  transform:translateY(-1px);
+}
+
+/* Approve — green outline */
+.btn-approve{
+  background:rgba(34,197,94,.1);
+  border:1px solid rgba(34,197,94,.4);
+  color:var(--green);
+}
+.btn-approve:hover:not(:disabled){background:rgba(34,197,94,.18);}
+
+/* Reject — red outline */
+.btn-reject{
+  background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.3);
+  color:var(--red);
+}
+.btn-reject:hover:not(:disabled){background:rgba(239,68,68,.15);}
+
+/* Ghost */
+.btn-ghost{
+  background:transparent;
+  border:1px solid var(--border2);
+  color:var(--text2);
+}
+.btn-ghost:hover{background:var(--surface2);color:var(--text);}
+
+/* Success */
+.btn-success{
+  background:rgba(34,197,94,.1);
+  border:1px solid rgba(34,197,94,.4);
+  color:var(--green);
+}
+
+/* Download — subtle */
+.btn-download{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text2);
+}
+.btn-download:hover:not(:disabled){background:var(--surface3);color:var(--text);border-color:var(--border2);}
+
+/* Danger */
+.btn-danger{
+  background:rgba(239,68,68,.08);
+  border:1px solid rgba(239,68,68,.2);
+  color:var(--red);
+}
+.btn-danger:hover:not(:disabled){background:rgba(239,68,68,.15);}
+
+/* Card footer */
+.clip-footer{
+  display:flex;gap:6px;
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid var(--border);
+}
+.clip-footer .btn{flex:1;padding:8px 10px;font-size:.72rem;}
+
+/* ═══════════════════════════════════════════
+   PANELS / CARDS (settings, schedule etc.)
+═══════════════════════════════════════════ */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  padding:24px;
+  margin-bottom:16px;
+}
+.panel-title{
+  font-family:'Syne',sans-serif;font-weight:700;
+  font-size:.95rem;margin-bottom:4px;
+}
+.panel-sub{font-size:.8rem;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:700px){.settings-grid{grid-template-columns:1fr}}
+
+.form-row{margin-bottom:16px;}
+.form-label{
+  font-size:.72rem;font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:7px;display:block;
+}
+.form-input{
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  color:var(--text);
+  font-family:'Plus Jakarta Sans',sans-serif;
+  font-size:.85rem;
+  padding:10px 14px;
+  border-radius:var(--r-sm);
+  outline:none;
+  transition:border-color .15s;
+}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--muted);}
+
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.toggle-row span{font-size:.85rem;color:var(--text2);}
+.toggle{position:relative;width:44px;height:24px;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--surface3);border:1px solid var(--border2);border-radius:24px;cursor:pointer;transition:.2s;}
+.toggle-slider:before{content:'';position:absolute;height:18px;width:18px;left:2px;bottom:2px;background:var(--muted);border-radius:50%;transition:.2s;}
+.toggle input:checked + .toggle-slider{background:var(--accent);border-color:var(--accent);}
+.toggle input:checked + .toggle-slider:before{transform:translateX(20px);background:#fff;}
+
+/* Code block in settings */
+.code-block{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  padding:14px 16px;
+  font-family:'DM Mono',monospace;
+  font-size:.75rem;
+  color:var(--muted);
+  line-height:2.1;
+}
+.code-block .hl-green{color:#22c55e;}
+.code-block .hl-red{color:var(--yt);}
+.code-block .hl-pink{color:var(--ig);}
+.code-block .hl-blue{color:var(--fb);}
+.code-block .hl-dim{color:var(--muted);}
+
+/* ═══════════════════════════════════════════
+   PLATFORM STATUS
+═══════════════════════════════════════════ */
+.platform-status-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;}
+@media(max-width:600px){.platform-status-grid{grid-template-columns:1fr}}
+
+.platform-status-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+  padding:14px 16px;
+  display:flex;align-items:center;gap:14px;
+  transition:border-color .15s;
+}
+.platform-status-card.ok{border-color:rgba(34,197,94,.3);}
+.platform-status-card.ok:hover{border-color:rgba(34,197,94,.5);}
+.p-icon-wrap{
+  width:38px;height:38px;
+  border-radius:var(--r-sm);
+  background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+}
+.p-name{font-weight:600;font-size:.85rem;margin-bottom:2px;}
+.p-status-ok{font-size:.72rem;color:var(--green);}
+.p-status-miss{font-size:.72rem;color:var(--amber);}
+
+/* ═══════════════════════════════════════════
+   ANALYTICS
+═══════════════════════════════════════════ */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+@media(max-width:700px){.stats-row{grid-template-columns:1fr 1fr}}
+
+.stat-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+  padding:20px;
+  position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--accent);
+  opacity:.6;
+}
+.stat-value{
+  font-family:'Syne',sans-serif;
+  font-weight:800;font-size:2.2rem;
+  color:var(--text);margin-bottom:4px;
+  line-height:1;
+}
+.stat-label{font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+
+.top-hooks-table{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+  overflow:hidden;
+}
+.table-header{
+  display:grid;grid-template-columns:1fr 100px 80px 80px;
+  padding:12px 20px;
+  border-bottom:1px solid var(--border);
+  font-size:.68rem;font-weight:600;
+  color:var(--muted);
+  text-transform:uppercase;letter-spacing:.1em;
+  background:var(--surface2);
+}
+.table-row{
+  display:grid;grid-template-columns:1fr 100px 80px 80px;
+  padding:14px 20px;
+  border-bottom:1px solid var(--border);
+  transition:background .15s;
+}
+.table-row:last-child{border-bottom:none;}
+.table-row:hover{background:var(--surface2);}
+
+.hook-bar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;}
+.hook-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--amber),var(--green));}
+
+/* ═══════════════════════════════════════════
+   SCHEDULE
+═══════════════════════════════════════════ */
+.queue-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-md);
+  padding:16px 20px;
+  margin-bottom:8px;
+  display:flex;align-items:center;gap:16px;
+  transition:border-color .15s;
+}
+.queue-card:hover{border-color:var(--border2);}
+.queue-time{
+  font-family:'DM Mono',monospace;
+  font-weight:500;font-size:.9rem;
+  color:var(--accent);min-width:80px;
+}
+.queue-detail{flex:1;font-size:.8rem;color:var(--text2);}
+.next-run-pill{
+  background:rgba(255,101,0,.1);
+  border:1px solid rgba(255,101,0,.3);
+  color:var(--accent);
+  padding:4px 12px;border-radius:100px;
+  font-size:.72rem;font-weight:600;
+  white-space:nowrap;
+}
+
+/* ═══════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════ */
+.empty-state{text-align:center;padding:72px 20px;color:var(--muted);}
+.empty-icon{
+  width:64px;height:64px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.6rem;
+  margin:0 auto 16px;
+}
+.empty-state h3{
+  font-family:'Syne',sans-serif;
+  font-size:1rem;font-weight:700;
+  color:var(--text2);margin-bottom:6px;
+}
+.empty-state p{font-size:.82rem;}
+
+/* ═══════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════ */
+.toast-container{
+  position:fixed;bottom:28px;right:28px;
+  display:flex;flex-direction:column;gap:8px;z-index:999;
+}
+.toast{
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:var(--r-md);
+  padding:13px 18px;
+  font-size:.82rem;font-weight:500;
+  animation:toastIn .25s ease;
+  max-width:320px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  display:flex;align-items:center;gap:10px;
+}
+.toast::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.toast.success{border-color:rgba(34,197,94,.4);color:var(--green);}
+.toast.success::before{background:var(--green);}
+.toast.error{border-color:rgba(239,68,68,.4);color:var(--red);}
+.toast.error::before{background:var(--red);}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* ═══════════════════════════════════════════
+   SCROLLBAR
+═══════════════════════════════════════════ */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border2);}
+
+/* ═══════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════ */
+.divider{border:none;border-top:1px solid var(--border);margin:24px 0;}
+</style>
+</head>
+<body>
+
+<!-- ══════════ HEADER ══════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-flame">🔥</div>
+    AI Clipper
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('clips',this)">Clips</button>
+    <button class="nav-tab" onclick="showPage('schedule',this)">Schedule</button>
+    <button class="nav-tab" onclick="showPage('analytics',this)">Analytics</button>
+    <button class="nav-tab" onclick="showPage('settings',this)">Settings</button>
+  </nav>
+</header>
+
+<!-- ══════════ CLIPS PAGE ══════════ -->
+<div id="page-clips" class="page active">
+  <div class="container">
+
+    <!-- Upload -->
+    <div class="section">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="videoFile" accept="video/*" onchange="handleFileSelect(event)"/>
+        <div class="upload-icon-wrap">🎬</div>
+        <h2>Drop your video here</h2>
+        <p>MP4, MOV, AVI, MKV &mdash; any length. Claude handles the rest.</p>
+      </div>
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+      <div class="status-bar" id="statusBar">
+        <div class="spinner"></div>
+        <span id="statusText">Processing...</span>
+      </div>
+    </div>
+
+    <!-- Clips -->
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Clips</div>
+        <div class="filters">
+          <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setFilter('pending',this)">Pending</button>
+          <button class="filter-btn" onclick="setFilter('approved',this)">Approved</button>
+          <button class="filter-btn" onclick="setFilter('posted',this)">Posted</button>
+          <button class="filter-btn" onclick="setFilter('rejected',this)">Rejected</button>
+        </div>
+      </div>
+      <div id="clipsGrid" class="clips-grid"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════ SCHEDULE PAGE ══════════ -->
+<div id="page-schedule" class="page">
+  <div class="container">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Posting Schedule</div>
+        <button class="btn btn-ghost" onclick="loadSchedule()">↻ Refresh</button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Auto-Post Status</div>
+        <div class="panel-sub">When enabled, approved clips post automatically at your configured times.</div>
+        <div id="schedulerStatus" style="font-size:.85rem;color:var(--muted)">Loading...</div>
+      </div>
+
+      <div class="section-title" style="margin-bottom:12px">Next Scheduled Runs</div>
+      <div id="nextRunsList"></div>
+
+      <div class="section-title" style="margin:28px 0 12px">Post History</div>
+      <div id="scheduleHistory"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ ANALYTICS PAGE ══════════ -->
+<div id="page-analytics" class="page">
+  <div class="container">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Analytics</div>
+        <button class="btn btn-ghost" onclick="loadAnalytics()">↻ Refresh</button>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-value" id="statTotal">—</div><div class="stat-label">Total Clips</div></div>
+        <div class="stat-card"><div class="stat-value" id="statPosted">—</div><div class="stat-label">Posted</div></div>
+        <div class="stat-card"><div class="stat-value" id="statViews">—</div><div class="stat-label">Total Views</div></div>
+        <div class="stat-card"><div class="stat-value" id="statHook">—</div><div class="stat-label">Avg Hook Score</div></div>
+      </div>
+
+      <div class="section-title" style="margin-bottom:14px">Top Performing Clips</div>
+      <div id="topClipsTable"></div>
+
+      <hr class="divider"/>
+
+      <div class="panel">
+        <div class="panel-title">🧠 Hook Learner</div>
+        <div class="panel-sub" id="hookLearnerStatus">Loading...</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:12px">Record real stats to improve future Claude scoring:</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:2;min-width:130px;">
+            <label class="form-label">Clip ID</label>
+            <input class="form-input" id="perfClipId" placeholder="e.g. abc1-clip1"/>
+          </div>
+          <div style="flex:1;min-width:80px;">
+            <label class="form-label">Views</label>
+            <input class="form-input" id="perfViews" type="number" placeholder="0"/>
+          </div>
+          <div style="flex:1;min-width:110px;">
+            <label class="form-label">Watch rate (0–1)</label>
+            <input class="form-input" id="perfWatchRate" type="number" step="0.01" max="1" placeholder="0.65"/>
+          </div>
+          <button class="btn btn-success" onclick="recordPerf()" style="padding:10px 20px">Record</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ SETTINGS PAGE ══════════ -->
+<div id="page-settings" class="page">
+  <div class="container">
+    <div class="section">
+      <div class="section-header"><div class="section-title">Settings</div></div>
+
+      <!-- Platform Status -->
+      <div style="margin-bottom:32px">
+        <div class="section-title" style="margin-bottom:14px">Platform Status</div>
+        <div class="platform-status-grid" id="platformStatusGrid">
+          <div style="color:var(--muted);font-size:.85rem">Loading...</div>
+        </div>
+        <div style="font-size:.75rem;color:var(--muted)">Add credentials to <code>.env</code> and restart the app to activate a platform.</div>
+      </div>
+
+      <!-- Brand Template -->
+      <div style="margin-bottom:32px">
+        <div class="section-title" style="margin-bottom:6px">Brand Outro Template</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:16px">
+          A branded end card is automatically appended to every clip after processing.
+          Upload a 1080×1920 PNG. The old template is archived and can be restored.
+        </div>
+
+        <div style="display:grid;grid-template-columns:200px 1fr;gap:20px;align-items:start;" id="overlaySection">
+
+          <!-- Preview -->
+          <div>
+            <div class="form-label">Current Template</div>
+            <div id="templatePreviewWrap" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;aspect-ratio:9/16;display:flex;align-items:center;justify-content:center;">
+              <div style="color:var(--muted);font-size:.8rem;text-align:center;padding:16px">Loading...</div>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div>
+            <div class="panel" style="margin-bottom:14px">
+              <div class="panel-title" style="margin-bottom:12px">Outro Settings</div>
+
+              <div class="toggle-row">
+                <span>Enable brand frame</span>
+                <label class="toggle"><input type="checkbox" id="overlayEnabled" onchange="saveOverlayConfig()"/><span class="toggle-slider"></span></label>
+              </div>
+
+              <div class="form-row">
+                <label class="form-label">Colorkey threshold (0.05–0.3)</label>
+                <div style="display:flex;gap:10px;align-items:center;">
+                  <input class="form-input" id="overlaySimilarity" type="number" min="0.05" max="0.3" step="0.01" value="0.12" style="width:110px"/>
+                  <span style="font-size:.75rem;color:var(--muted)">How aggressively black is removed. Lower = only pure black.</span>
+                </div>
+              </div>
+
+              <button class="btn btn-ghost" onclick="saveOverlayConfig()" style="margin-top:4px">Save Settings</button>
+            </div>
+
+            <!-- Upload -->
+            <div class="panel" style="margin-bottom:14px">
+              <div class="panel-title" style="margin-bottom:6px">Upload New Template</div>
+              <div style="font-size:.78rem;color:var(--muted);margin-bottom:12px">PNG or JPG, 1080×1920 recommended. The current template will be archived.</div>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input type="file" id="templateFile" accept="image/png,image/jpeg" style="display:none" onchange="uploadTemplate(event)"/>
+                <button class="btn btn-primary" onclick="document.getElementById('templateFile').click()" style="flex:1">Upload New Template</button>
+                <button class="btn btn-danger" onclick="confirmDeleteTemplate()" title="Remove current template">Remove</button>
+              </div>
+            </div>
+
+            <!-- Archive -->
+            <div class="panel">
+              <div class="panel-title" style="margin-bottom:10px">Template Archive</div>
+              <div id="templateArchiveList" style="font-size:.8rem;color:var(--muted)">Loading...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="settings-grid">
+
+        <!-- Schedule -->
+        <div class="panel">
+          <div class="panel-title">Auto-Post Schedule</div>
+          <div class="panel-sub">Set when approved clips get posted automatically.</div>
+          <div class="toggle-row">
+            <span>Enable auto-posting</span>
+            <label class="toggle"><input type="checkbox" id="schedEnabled"/><span class="toggle-slider"></span></label>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Daily post limit</label>
+            <input class="form-input" id="dailyLimit" type="number" min="1" max="10" value="3"/>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Posting times (HH:MM, comma-separated)</label>
+            <input class="form-input" id="postingTimes" value="08:00, 13:00, 19:00"/>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Timezone</label>
+            <input class="form-input" id="timezone" value="Africa/Lagos"/>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="saveScheduleConfig()">Save Schedule</button>
+        </div>
+
+        <!-- Credentials -->
+        <div class="panel">
+          <div class="panel-title">Platform Credentials</div>
+          <div class="panel-sub">Add to <code>.env</code> and restart.</div>
+          <div class="code-block">
+            <span class="hl-green"># Anthropic (required)</span><br>
+            ANTHROPIC_API_KEY=sk-ant-...<br><br>
+            <span class="hl-red"># YouTube Shorts</span><br>
+            YOUTUBE_CLIENT_SECRETS_FILE=./client_secret.json<br>
+            YOUTUBE_TOKEN_FILE=./youtube_token.json<br><br>
+            <span class="hl-pink"># Instagram Reels</span><br>
+            INSTAGRAM_ACCESS_TOKEN=...<br>
+            INSTAGRAM_ACCOUNT_ID=...<br>
+            INSTAGRAM_PUBLIC_BASE_URL=http://your-server:8000<br><br>
+            <span class="hl-blue"># Facebook Reels</span><br>
+            FACEBOOK_ACCESS_TOKEN=...<br>
+            FACEBOOK_PAGE_ID=...<br><br>
+            <span class="hl-dim"># TikTok (pending API approval)</span><br>
+            TIKTOK_ACCESS_TOKEN=...<br>
+            TIKTOK_CLIENT_KEY=...<br>
+            TIKTOK_CLIENT_SECRET=...<br><br>
+            <span style="color:var(--up)"># Upload-Post (TikTok without API approval)</span><br>
+            UPLOADPOST_API_KEY=your_api_key<br>
+            UPLOADPOST_PROFILE=your_profile_name<br>
+            <span class="hl-dim"># Verify: GET /uploadpost/verify</span>
+          </div>
+        </div>
+
+        <!-- Watch folder -->
+        <div class="panel">
+          <div class="panel-title">Watch Folder</div>
+          <div class="panel-sub">Drop a video in this folder and the pipeline triggers automatically — no upload needed.</div>
+          <div class="code-block">
+            WATCH_FOLDER=./watch_inbox<br>
+            <span class="hl-dim"># Restart app after changing</span>
+          </div>
+          <div style="margin-top:12px;font-size:.75rem;color:var(--muted)">Processed videos move to <code>watch_processed/</code>.</div>
+        </div>
+
+        <!-- Hook Learner -->
+        <div class="panel">
+          <div class="panel-title">Hook Learner</div>
+          <div class="panel-sub">The AI improves its hook scoring automatically based on real performance data you feed in.</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0"></div>
+              <span style="color:var(--muted)">3+ clips recorded → AI gets lesson data</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--amber);flex-shrink:0"></div>
+              <span style="color:var(--text2)">10+ clips → Pattern recognition kicks in</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:.82rem;">
+              <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+              <span style="color:var(--text)">30+ clips → Your audience profile is solid</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Provider -->
+        <div class="panel">
+          <div class="panel-title">AI Brain</div>
+          <div class="panel-sub">Active model for clip analysis and caption writing. Change <code>AI_PROVIDER</code> in <code>.env</code> to switch.</div>
+          <div id="aiProviderCard" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:14px;">
+            <div style="color:var(--muted);font-size:.82rem">Loading...</div>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.9">
+            <span style="color:var(--accent);font-weight:600">groq</span> — free tier, very fast (recommended)<br>
+            <span style="color:var(--text2);font-weight:600">claude</span> — best caption quality, paid<br>
+            <span style="color:var(--text2);font-weight:600">ollama</span> — free forever, runs on your server
+          </div>
+        </div>
+
+        <!-- Google Drive -->
+        <div class="panel">
+          <div class="panel-title">Google Drive Sync</div>
+          <div class="panel-sub">Pulls videos from a shared Drive folder automatically. Uses a Service Account — auth never expires.</div>
+          <div id="gdriveStatusCard" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;margin-bottom:14px;">
+            <div style="color:var(--muted);font-size:.82rem">Loading...</div>
+          </div>
+          <div style="font-size:.75rem;color:var(--muted);line-height:1.9">
+            Setup guide: see top of <code>scripts/gdrive_watch.py</code><br>
+            Logs: <code>sudo journalctl -u gdrive-sync -f</code>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- ══════════ JAVASCRIPT ══════════ -->
+<script>
+let currentFilter='all', allClips=[], configuredPlatforms=[], selectedPlatforms={};
+
+const PLATFORM_META={
+  youtube:          {icon:'▶',label:'YouTube',           color:'var(--yt)'},
+  instagram:        {icon:'◉',label:'Instagram',         color:'var(--ig)'},
+  facebook:         {icon:'f',label:'Facebook',          color:'var(--fb)'},
+  tiktok:           {icon:'♪',label:'TikTok',            color:'#fff'},
+  tiktok_uploadpost:    {icon:'♪',label:'TikTok (Upload-Post)',    color:'var(--up)'},
+  instagram_uploadpost: {icon:'◉',label:'Instagram (Upload-Post)', color:'var(--up)'},
+  facebook_uploadpost:  {icon:'f',label:'Facebook (Upload-Post)',  color:'var(--up)'},
+};
+
+// ── Nav ──────────────────────────────────────────────
+function showPage(name,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='schedule') loadSchedule();
+  if(name==='analytics') loadAnalytics();
+  if(name==='settings') loadSettings();
+}
+
+// ── Upload ────────────────────────────────────────────
+const zone=document.getElementById('uploadZone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)uploadFile(f);});
+function handleFileSelect(e){const f=e.target.files[0];if(f)uploadFile(f);}
+
+async function uploadFile(file){
+  const pb=document.getElementById('progressBar'),pf=document.getElementById('progressFill');
+  const sb=document.getElementById('statusBar'),st=document.getElementById('statusText');
+  pb.style.display='block';sb.style.display='flex';
+  st.textContent=`Uploading ${file.name}...`;pf.style.width='20%';
+  const fd=new FormData();fd.append('file',file);
+  try{
+    await fetch('/upload',{method:'POST',body:fd});
+    pf.style.width='55%';
+    st.textContent='Transcribing with faster-whisper...';
+    toast('Upload complete — AI is processing your video.','success');
+    let polls=0;
+    const iv=setInterval(async()=>{
+      polls++;await loadClips();
+      if(polls>2){pf.style.width='70%';st.textContent='Claude is finding viral moments...';}
+      if(polls>5){pf.style.width='85%';st.textContent='Cutting clips and writing captions...';}
+      if(polls>8){pf.style.width='95%';st.textContent='Almost ready...';}
+      const pending=allClips.filter(c=>c.status==='pending');
+      if(pending.length>0&&polls>3){
+        clearInterval(iv);pf.style.width='100%';
+        setTimeout(()=>{pb.style.display='none';sb.style.display='none';pf.style.width='0%';},1500);
+        toast(`${pending.length} clips ready for review.`,'success');
+      }
+    },4000);
+    setTimeout(()=>clearInterval(iv),300000);
+  }catch(e){
+    st.textContent='Upload failed.';
+    toast('Upload failed: '+e.message,'error');
+  }
+}
+
+// ── Platforms ─────────────────────────────────────────
+async function loadPlatforms(){
+  try{
+    const data=await fetch('/platforms').then(r=>r.json());
+    configuredPlatforms=data.filter(p=>p.configured).map(p=>p.key);
+  }catch(e){configuredPlatforms=[];}
+}
+
+// ── Clips ─────────────────────────────────────────────
+// Track last known state per clip to avoid unnecessary re-renders
+const _clipStateCache = {};
+
+async function loadClips(){
+  try{
+    const r=await fetch('/clips');
+    const fresh=await r.json();
+
+    // Detect new clips (not in allClips yet) so we can animate them in
+    const existingIds=new Set(allClips.map(c=>c.id));
+    const newIds=new Set(fresh.map(c=>c.id));
+
+    allClips=fresh;
+
+    // If filter changed or grid is empty just do a full render
+    const grid=document.getElementById('clipsGrid');
+    const hasCards=grid.querySelector('.clip-card');
+    if(!hasCards){ renderClips(); return; }
+
+    // Smart update: patch only what changed
+    _patchClipGrid(existingIds, newIds);
+  }catch(e){}
+}
+
+function _patchClipGrid(existingIds, newIds){
+  const grid=document.getElementById('clipsGrid');
+  let clips=currentFilter==='all'?allClips:allClips.filter(c=>c.status===currentFilter);
+
+  if(!clips.length){ renderClips(); return; }
+
+  // Remove cards that no longer exist in the filtered list
+  const visibleIds=new Set(clips.map(c=>c.id));
+  grid.querySelectorAll('.clip-card[data-clip-id]').forEach(card=>{
+    if(!visibleIds.has(card.dataset.clipId)) card.remove();
+  });
+
+  // Update or insert each clip
+  clips.forEach((clip, i) => {
+    const existing = grid.querySelector(`.clip-card[data-clip-id="${clip.id}"]`);
+    const cacheKey = clip.id;
+    const newState = clip.status + '|' + (clip.post_ids ? JSON.stringify(clip.post_ids) : '');
+    const oldState = _clipStateCache[cacheKey];
+
+    if (!existing) {
+      // New card — insert it
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = renderCard(clip, i);
+      const card = wrapper.firstElementChild;
+      grid.appendChild(card);
+      _clipStateCache[cacheKey] = newState;
+      return;
+    }
+
+    // Card exists — only update if something meaningful changed
+    if (oldState === newState) return;
+
+    // Check if video in this card is currently playing — if so, never touch it
+    const video = existing.querySelector('video');
+    if (video && !video.paused) {
+      // Only update the status badge, nothing else
+      const badge = existing.querySelector('.clip-status-badge');
+      if (badge) {
+        badge.className = `clip-status-badge badge-${clip.status}`;
+        badge.textContent = clip.status[0].toUpperCase() + clip.status.slice(1);
+      }
+      _clipStateCache[cacheKey] = newState;
+      return;
+    }
+
+    // Safe to update — replace only the card body (not the video wrap)
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderCard(clip, i);
+    const newCard = wrapper.firstElementChild;
+    existing.replaceWith(newCard);
+    _clipStateCache[cacheKey] = newState;
+  });
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderClips();
+}
+
+function renderClips(){
+  const grid=document.getElementById('clipsGrid');
+  let clips=currentFilter==='all'?allClips:allClips.filter(c=>c.status===currentFilter);
+  if(!clips.length){
+    const labels={all:'No clips yet',pending:'No pending clips',approved:'No approved clips',posted:'No posted clips',rejected:'No rejected clips'};
+    const subs={all:'Upload a video above to get started',pending:'All caught up',approved:'Approve some clips first',posted:'Nothing posted yet',rejected:''};
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-icon">${currentFilter==='all'?'🎬':'📭'}</div>
+      <h3>${labels[currentFilter]||'No clips'}</h3>
+      <p>${subs[currentFilter]||''}</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML=clips.map((c,i)=>renderCard(c,i)).join('');
+  // Seed the cache after a full render
+  clips.forEach(c=>{
+    _clipStateCache[c.id]=c.status+'|'+(c.post_ids?JSON.stringify(c.post_ids):'');
+  });
+}
+
+function hookScoreClass(score){
+  if(score<=4) return 'score-low';
+  if(score<=7) return 'score-mid';
+  return 'score-high';
+}
+
+function renderPlatformActionBtns(clipId, postedIds, status){
+  // No platforms configured at all
+  if(!configuredPlatforms.length)
+    return `<div style="font-size:.75rem;color:var(--amber);padding:10px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r-sm);grid-column:1/-1">
+      No platforms configured — see Settings for setup guide.
+    </div>`;
+
+  const all=['youtube','instagram','facebook','tiktok','tiktok_uploadpost','instagram_uploadpost','facebook_uploadpost'];
+  const available=all.filter(p=>configuredPlatforms.includes(p)&&!postedIds[p]);
+  const posted=all.filter(p=>postedIds[p]);
+
+  if(!available.length && posted.length)
+    return `<div style="font-size:.75rem;color:var(--green);padding:8px 0;grid-column:1/-1">✓ Posted to all configured platforms</div>`;
+
+  const isPending = status==='pending';
+  const approveVerb = isPending ? 'Approve & Post' : 'Post';
+
+  // Individual platform buttons
+  const perPlatform = available.map(p=>{
+    const meta=PLATFORM_META[p];
+    const action = isPending
+      ? `approveAndPostTo('${clipId}','${p}')`
+      : `postClipTo('${clipId}','${p}')`;
+    return `<button class="btn btn-approve" style="flex:1;min-width:120px;font-size:.72rem" onclick="${action}">
+      ${meta.icon} ${approveVerb} to ${meta.label.replace(' (Upload-Post)','').replace(' (Buffer)','')}
+    </button>`;
+  }).join('');
+
+  // "Post to all" button — only show if 2+ platforms available
+  const allBtn = available.length>=2
+    ? `<button class="btn btn-post" style="grid-column:1/-1" onclick="${isPending?`approveAndPostAll('${clipId}')`:`postAllPlatforms('${clipId}')`}">
+        🚀 ${approveVerb} to All (${available.length})
+      </button>`
+    : '';
+
+  // If pending, also show standalone Approve (no post)
+  const approveOnly = isPending
+    ? `<button class="btn btn-ghost" style="font-size:.75rem" onclick="approveClip('${clipId}')">✓ Approve only</button>`
+    : '';
+
+  return `<div style="display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1;align-items:center">
+    ${perPlatform}
+    ${approveOnly}
+  </div>
+  ${allBtn}`;
+}
+
+function renderPostedUrls(postUrls){
+  if(!postUrls||!Object.keys(postUrls).length) return '';
+  const rows=Object.entries(postUrls).map(([p,url])=>{
+    const meta=PLATFORM_META[p]||{icon:'🔗',label:p};
+    return `<div class="posted-url-row">${meta.icon} ${meta.label} <a href="${url}" target="_blank">View post →</a></div>`;
+  }).join('');
+  return `<div class="posted-urls">${rows}</div>`;
+}
+
+function renderCard(clip,i){
+  const postUrls=clip.post_urls||{};
+  const postIds=clip.post_ids||{};
+  let actions='';
+
+  if(!selectedPlatforms[clip.id]) selectedPlatforms[clip.id]=configuredPlatforms[0]||'youtube';
+
+  // ── Caption + hashtag editor (always editable, all statuses) ──────────────
+  const captionBlock=`
+    <div class="caption-area">
+      <div class="caption-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Caption</span>
+        ${clip.status!=='pending'?`<button class="btn btn-ghost" style="padding:3px 10px;font-size:.68rem" onclick="saveCaption('${clip.id}')">Save edits</button>`:''}
+      </div>
+      <textarea class="caption-edit" id="cap-${clip.id}" style="min-height:${clip.status==='pending'?'80':'60'}px">${clip.caption}</textarea>
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="caption-label" style="margin-bottom:6px">Hashtags <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(space-separated)</span></div>
+      <input class="caption-edit" id="hash-${clip.id}" value="${clip.hashtags.map(h=>h.replace(/^#/,'')).join(' ')}" style="width:100%;resize:none;font-size:.78rem;padding:8px 10px;border-radius:var(--r-sm);border:1px solid var(--border);background:var(--surface2);color:var(--text);" placeholder="startup talentvisa founder" />
+    </div>`;
+
+  // ── Per-platform action buttons ────────────────────────────────────────────
+  const platformActionBtns = renderPlatformActionBtns(clip.id, postIds, clip.status);
+
+  if(clip.status==='pending'){
+    actions=`${platformActionBtns}
+      <button class="btn btn-reject" onclick="rejectClip('${clip.id}')" style="grid-column:1/-1;background:transparent;border-color:rgba(239,68,68,.2)">Reject</button>`;
+  }else if(clip.status==='approved'){
+    actions=platformActionBtns;
+  }else if(clip.status==='posted'){
+    const remaining=configuredPlatforms.filter(p=>!postIds[p]);
+    actions=`${renderPostedUrls(postUrls)}${remaining.length?platformActionBtns:''}
+      <div style="text-align:center;margin-top:4px"><a href="#" style="font-size:.75rem" onclick="gotoPerf('${clip.id}');return false">Record performance stats →</a></div>`;
+  }
+
+  return `<div class="clip-card" data-clip-id="${clip.id}" style="animation-delay:${i*.04}s">
+    <div class="clip-video-wrap">
+      <video src="/clips/${clip.id}/video" preload="metadata" controls muted playsinline></video>
+      <span class="clip-status-badge badge-${clip.status}">${clip.status[0].toUpperCase()+clip.status.slice(1)}</span>
+      <span class="hook-score ${hookScoreClass(clip.hook_score)}">${clip.hook_score}/10</span>
+    </div>
+    <div class="clip-body">
+      <div class="clip-topic">${clip.topic}</div>
+      <div class="clip-hook">${clip.hook_text}</div>
+      <div class="clip-meta">
+        <span class="meta-pill">⏱ ${fmtDur(clip.duration)}</span>
+        <span class="meta-pill">${fmtT(clip.start_time)} → ${fmtT(clip.end_time)}</span>
+        <span class="meta-pill">${clip.id}</span>
+      </div>
+      ${captionBlock}
+      <div class="clip-actions">${actions}</div>
+      <div class="clip-footer">
+        <button class="btn btn-download" onclick="downloadVideo('${clip.id}')">⬇ Video</button>
+        <button class="btn btn-download" onclick="downloadPackage('${clip.id}')">📦 Full Pack</button>
+        <button class="btn btn-danger" onclick="deleteClip('${clip.id}')">🗑 Delete</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Actions ───────────────────────────────────────────
+
+// Collect edited caption + hashtags from the card
+function _getEdits(id){
+  const capEl  = document.getElementById(`cap-${id}`);
+  const hashEl = document.getElementById(`hash-${id}`);
+  const caption  = capEl  ? capEl.value.trim()  : null;
+  const hashRaw  = hashEl ? hashEl.value.trim() : null;
+  const hashtags = hashRaw ? hashRaw.split(/\s+/).filter(Boolean).map(h=>h.replace(/^#/,'')) : null;
+  return {caption, hashtags};
+}
+
+async function saveCaption(id){
+  const {caption,hashtags}=_getEdits(id);
+  const res=await fetch(`/clips/${id}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({caption,hashtags})});
+  if(res.ok) toast('Caption saved.','success');
+  else toast('Save failed.','error');
+}
+
+async function approveClip(id){
+  const {caption,hashtags}=_getEdits(id);
+  const body={};
+  if(caption) body.caption=caption;
+  if(hashtags) body.hashtags=hashtags;
+  const res=await fetch(`/clips/${id}/approve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(res.ok){toast('Clip approved.','success');await loadClips();}
+  else toast('Failed to approve.','error');
+}
+
+async function rejectClip(id){
+  if(!confirm('Reject this clip?')) return;
+  const res=await fetch(`/clips/${id}/reject`,{method:'POST'});
+  if(res.ok){toast('Clip rejected.','success');await loadClips();}
+}
+
+async function _doPost(id, platform){
+  const meta=PLATFORM_META[platform];
+  const label=(meta?.label||platform).replace(' (Upload-Post)','').replace(' (Buffer)','');
+  toast(`Posting to ${label}...`,'success');
+  const res=await fetch(`/clips/${id}/post?platform=${platform}`,{method:'POST'});
+  if(res.ok){
+    const data=await res.json();
+    toast(`Posted to ${label} ✓`,'success');
+    if(data.url&&data.url!=='https://upload-post.com') setTimeout(()=>window.open(data.url,'_blank'),800);
+    await loadClips();
+    return true;
+  }else{
+    const d=await res.json().catch(()=>({}));
+    toast(`${label} failed: `+(d.detail||'error'),'error');
+    return false;
+  }
+}
+
+// Post to one specific platform (clip already approved)
+async function postClipTo(id, platform){ await _doPost(id, platform); }
+
+// Approve then post to one specific platform
+async function approveAndPostTo(id, platform){
+  await approveClip(id);
+  await _doPost(id, platform);
+}
+
+// Post to ALL configured platforms that haven't been posted yet
+async function postAllPlatforms(id){
+  const clip=allClips.find(c=>c.id===id);
+  if(!clip) return;
+  const postedIds=clip.post_ids||{};
+  const all=['youtube','instagram','facebook','tiktok','tiktok_uploadpost','instagram_uploadpost','facebook_uploadpost'];
+  const targets=all.filter(p=>configuredPlatforms.includes(p)&&!postedIds[p]);
+  if(!targets.length){toast('No platforms left to post to.','error');return;}
+  toast(`Posting to ${targets.length} platform(s)...`,'success');
+  for(const p of targets){ await _doPost(id, p); }
+}
+
+// Approve then post to ALL configured platforms
+async function approveAndPostAll(id){
+  await approveClip(id);
+  await postAllPlatforms(id);
+}
+
+// Legacy — kept for any remaining references
+async function approveAndPost(id){ await approveAndPostTo(id, configuredPlatforms[0]||'youtube'); }
+function gotoPerf(clipId){
+  document.querySelectorAll('.nav-tab')[2].click();
+  setTimeout(()=>{document.getElementById('perfClipId').value=clipId;document.getElementById('perfViews').focus();},200);
+}
+function downloadVideo(id){const a=document.createElement('a');a.href=`/clips/${id}/download`;a.click();}
+function downloadPackage(id){toast('Preparing package...','success');const a=document.createElement('a');a.href=`/clips/${id}/download-package`;a.click();}
+async function deleteClip(id){
+  if(!confirm('Delete this clip permanently? This cannot be undone.')) return;
+  const res=await fetch(`/clips/${id}`,{method:'DELETE'});
+  if(res.ok){toast('Clip deleted.','success');await loadClips();}
+  else{const d=await res.json().catch(()=>({}));toast('Delete failed: '+(d.detail||'error'),'error');}
+}
+
+// ── Schedule ──────────────────────────────────────────
+async function loadSchedule(){
+  try{
+    const[config,nextRuns,history]=await Promise.all([
+      fetch('/schedule/config').then(r=>r.json()),
+      fetch('/schedule/next-runs').then(r=>r.json()),
+      fetch('/schedule/queue').then(r=>r.json()),
+    ]);
+    document.getElementById('schedulerStatus').innerHTML=config.enabled
+      ?`<span style="color:var(--green);font-weight:600">● Active</span> &mdash; up to <strong>${config.daily_limit}</strong> clips/day at ${config.posting_times.join(', ')} (${config.timezone})`
+      :`<span style="color:var(--muted)">○ Disabled</span> &mdash; enable in Settings to auto-post approved clips`;
+    document.getElementById('nextRunsList').innerHTML=nextRuns.length
+      ?nextRuns.map(r=>`<div class="queue-card"><div class="queue-time">${fmtRunTime(r.next_run)}</div><div class="queue-detail">${r.name}</div><span class="next-run-pill">upcoming</span></div>`).join('')
+      :`<div style="color:var(--muted);font-size:.83rem;padding:16px 0">No scheduled runs. Enable auto-posting in Settings.</div>`;
+    const sorted=[...history].sort((a,b)=>(b.posted_at||'').localeCompare(a.posted_at||''));
+    document.getElementById('scheduleHistory').innerHTML=sorted.slice(0,10).map(p=>`
+      <div class="queue-card">
+        <div class="queue-time" style="font-size:.82rem">${p.posted_at?fmtRunTime(p.posted_at):'—'}</div>
+        <div class="queue-detail">Clip <code>${p.clip_id}</code> &middot; <span style="color:var(--${p.status==='posted'?'green':p.status==='failed'?'red':'muted'})">${p.status}</span>${p.error?' &middot; '+p.error:''}</div>
+      </div>`).join('')||`<div style="color:var(--muted);font-size:.83rem;padding:16px 0">No post history yet.</div>`;
+  }catch(e){}
+}
+
+// ── Analytics ─────────────────────────────────────────
+async function loadAnalytics(){
+  try{
+    const data=await fetch('/analytics').then(r=>r.json());
+    document.getElementById('statTotal').textContent=data.total_clips||0;
+    document.getElementById('statPosted').textContent=data.by_status?.posted||0;
+    document.getElementById('statViews').textContent=fmtNum(data.total_views||0);
+    document.getElementById('statHook').textContent=data.avg_hook_score?data.avg_hook_score.toFixed(1):'—';
+    document.getElementById('hookLearnerStatus').textContent=data.lessons_available
+      ?`${data.top_clips?.length||0} clips tracked — Claude is using this data to improve future hooks.`
+      :`Need 3+ clips with performance data to activate. (${data.top_clips?.length||0} recorded so far)`;
+    const te=document.getElementById('topClipsTable');
+    if(!data.top_clips?.length){
+      te.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><h3>No performance data yet</h3><p>Record stats for posted clips below.</p></div>`;
+      return;
+    }
+    te.innerHTML=`<div class="top-hooks-table">
+      <div class="table-header"><div>Hook &amp; Topic</div><div>Views</div><div>Watch %</div><div>Score</div></div>
+      ${data.top_clips.map(c=>`<div class="table-row">
+        <div>
+          <div style="font-size:.82rem;line-height:1.4;color:var(--text)">"${c.hook_text.slice(0,55)}${c.hook_text.length>55?'…':''}"</div>
+          <div style="color:var(--muted);font-size:.7rem;margin-top:2px">${c.topic}</div>
+        </div>
+        <div style="font-weight:700;color:var(--text)">${fmtNum(c.views)}</div>
+        <div style="color:var(--text2)">${c.watch_rate?(c.watch_rate*100).toFixed(0)+'%':'—'}</div>
+        <div>
+          <div style="font-size:.82rem;color:var(--text)">${c.hook_score}/10</div>
+          <div class="hook-bar"><div class="hook-fill" style="width:${c.hook_score*10}%"></div></div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }catch(e){}
+}
+
+async function recordPerf(){
+  const id=document.getElementById('perfClipId').value.trim();
+  const views=parseInt(document.getElementById('perfViews').value)||0;
+  const wr=parseFloat(document.getElementById('perfWatchRate').value)||0;
+  if(!id){toast('Enter a clip ID.','error');return;}
+  const res=await fetch(`/clips/${id}/performance?views=${views}&watch_rate=${wr}`,{method:'POST'});
+  if(res.ok){
+    toast(`Performance recorded for ${id}.`,'success');
+    document.getElementById('perfClipId').value='';
+    document.getElementById('perfViews').value='';
+    document.getElementById('perfWatchRate').value='';
+    await loadAnalytics();
+  }else toast('Failed to record.','error');
+}
+
+// ── Settings ──────────────────────────────────────────
+async function loadSettings(){
+  const[schedConfig,platforms]=await Promise.all([
+    fetch('/schedule/config').then(r=>r.json()).catch(()=>({})),
+    fetch('/platforms').then(r=>r.json()).catch(()=>[]),
+  ]);
+  if(schedConfig.enabled!==undefined){
+    document.getElementById('schedEnabled').checked=schedConfig.enabled;
+    document.getElementById('dailyLimit').value=schedConfig.daily_limit||3;
+    document.getElementById('postingTimes').value=(schedConfig.posting_times||[]).join(', ');
+    document.getElementById('timezone').value=schedConfig.timezone||'Africa/Lagos';
+  }
+  const icons={youtube:'▶',instagram:'◉',facebook:'f',tiktok:'♪'};
+  document.getElementById('platformStatusGrid').innerHTML=platforms.map(p=>`
+    <div class="platform-status-card ${p.configured?'ok':''}">
+      <div class="p-icon-wrap">${icons[p.key]||'○'}</div>
+      <div>
+        <div class="p-name">${p.name}</div>
+        <div class="${p.configured?'p-status-ok':'p-status-miss'}">
+          ${p.configured?'Connected':'Add credentials'}
+        </div>
+      </div>
+    </div>`).join('');
+
+  // Load overlay config
+  await loadOverlayConfig();
+
+  // Load AI provider info
+  try{
+    const ai=await fetch('/ai/provider').then(r=>r.json());
+    const providerColors={claude:'var(--text2)',groq:'var(--accent)',ollama:'var(--green)'};
+    const freeLabel=ai.free?`<span style="background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:100px;font-size:.7rem;margin-left:8px">FREE</span>`:'';
+    const configLabel=ai.configured===false
+      ?`<div style="color:var(--red);font-size:.75rem;margin-top:6px">Not configured — add API key to .env</div>`
+      :`<div style="color:var(--green);font-size:.75rem;margin-top:4px">Connected</div>`;
+    document.getElementById('aiProviderCard').innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="font-family:'DM Mono',monospace;font-size:1rem;font-weight:700;color:${providerColors[ai.provider]||'var(--text)'}">${ai.provider.toUpperCase()}</div>
+        ${freeLabel}
+      </div>
+      <div style="font-size:.8rem;color:var(--text2)">Model: <span style="font-family:'DM Mono',monospace">${ai.model||'—'}</span></div>
+      ${ai.base_url?`<div style="font-size:.75rem;color:var(--muted);margin-top:2px">${ai.base_url}</div>`:''}
+      ${configLabel}`;
+  }catch(e){
+    document.getElementById('aiProviderCard').innerHTML=`<div style="color:var(--muted);font-size:.82rem">Could not load AI provider info.</div>`;
+  }
+
+  // Load Google Drive sync status
+  try{
+    const gd=await fetch('/gdrive/status').then(r=>r.json());
+    const statusColor=gd.service_active?'var(--green)':'var(--muted)';
+    const statusDot=gd.service_active?'●':'○';
+    const statusLabel=gd.service_active?'Sync service running':'Sync service not running';
+    const authBadge=`<span style="background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.3);padding:2px 8px;border-radius:100px;font-size:.68rem;margin-left:8px">Service Account · Never expires</span>`;
+    document.getElementById('gdriveStatusCard').innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="color:${statusColor};font-size:1rem">${statusDot}</span>
+        <span style="font-size:.85rem;font-weight:600;color:${statusColor}">${statusLabel}</span>
+        ${gd.configured?authBadge:''}
+      </div>
+      ${gd.configured?`
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">Folder ID: <span style="font-family:'DM Mono',monospace">${gd.folder_id||'—'}</span></div>
+        <div style="font-size:.78rem;color:var(--muted);margin-bottom:8px">Polls every ${gd.sync_interval_seconds}s &nbsp;·&nbsp; ${gd.total_files_synced} file(s) downloaded total</div>
+        ${gd.recent_log.length?`<div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);line-height:1.7;background:var(--bg);padding:8px 10px;border-radius:6px;max-height:80px;overflow-y:auto">${gd.recent_log.map(l=>l.replace(/</g,'&lt;')).join('<br>')}</div>`:''}
+      `:`<div style="font-size:.8rem;color:var(--amber)">Not configured — see <code>scripts/gdrive_watch.py</code> for setup steps</div>`}`;
+  }catch(e){
+    document.getElementById('gdriveStatusCard').innerHTML=`<div style="color:var(--muted);font-size:.82rem">Google Drive sync not configured.</div>`;
+  }
+}
+
+async function loadOverlayConfig(){
+  try{
+    const data=await fetch('/overlay/config').then(r=>r.json());
+
+    document.getElementById('overlayEnabled').checked=data.enabled;
+    document.getElementById('overlaySimilarity').value=data.similarity||0.12;
+
+    // Template preview
+    const wrap=document.getElementById('templatePreviewWrap');
+    if(data.template_exists){
+      wrap.innerHTML=`<img src="/overlay/template/preview?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;" alt="Brand template"/>`;
+    }else{
+      wrap.innerHTML=`<div style="color:var(--muted);font-size:.78rem;text-align:center;padding:16px">No template uploaded</div>`;
+    }
+
+    // Archive list
+    const archiveEl=document.getElementById('templateArchiveList');
+    if(data.archived_templates&&data.archived_templates.length){
+      archiveEl.innerHTML=data.archived_templates.map(a=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:.78rem;color:var(--text2)">${a.filename}</div>
+            <div style="font-size:.7rem;color:var(--muted)">${a.size_kb}KB</div>
+          </div>
+          <button class="btn btn-ghost" style="padding:5px 12px;font-size:.72rem" onclick="restoreTemplate('${a.filename}')">Restore</button>
+        </div>`).join('');
+    }else{
+      archiveEl.textContent='No archived templates yet.';
+    }
+  }catch(e){
+    console.error('Failed to load overlay config',e);
+  }
+}
+
+async function saveOverlayConfig(){
+  const enabled=document.getElementById('overlayEnabled').checked;
+  const similarity=parseFloat(document.getElementById('overlaySimilarity').value)||0.12;
+  const res=await fetch(`/overlay/config?enabled=${enabled}&similarity=${similarity}`,{method:'PATCH'});
+  if(res.ok) toast('Brand frame settings saved.','success');
+  else toast('Save failed.','error');
+}
+
+async function uploadTemplate(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  toast('Uploading new template...','success');
+  const fd=new FormData();
+  fd.append('file',file);
+  const res=await fetch('/overlay/template',{method:'POST',body:fd});
+  if(res.ok){
+    toast('New brand template uploaded.','success');
+    await loadOverlayConfig();
+  }else{
+    const d=await res.json().catch(()=>({}));
+    toast('Upload failed: '+(d.detail||'error'),'error');
+  }
+  event.target.value='';
+}
+
+async function confirmDeleteTemplate(){
+  if(!confirm('Remove the current template? The outro card will be skipped until you upload a new one.')) return;
+  const res=await fetch('/overlay/template',{method:'DELETE'});
+  if(res.ok){toast('Template removed.','success');await loadOverlayConfig();}
+  else toast('Remove failed.','error');
+}
+
+async function restoreTemplate(filename){
+  if(!confirm(`Restore "${filename}" as the active template?`)) return;
+  const res=await fetch(`/overlay/template/restore/${encodeURIComponent(filename)}`,{method:'POST'});
+  if(res.ok){toast('Template restored.','success');await loadOverlayConfig();}
+  else toast('Restore failed.','error');
+}
+
+async function saveScheduleConfig(){
+  const times=document.getElementById('postingTimes').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const config={
+    enabled:document.getElementById('schedEnabled').checked,
+    daily_limit:parseInt(document.getElementById('dailyLimit').value),
+    posting_times:times,
+    timezone:document.getElementById('timezone').value.trim(),
+  };
+  const res=await fetch('/schedule/config',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)});
+  if(res.ok) toast('Schedule saved.','success');else toast('Save failed.','error');
+}
+
+// ── Utils ─────────────────────────────────────────────
+function fmtDur(s){const m=Math.floor(s/60),sec=Math.round(s%60);return m>0?`${m}m ${sec}s`:`${sec}s`;}
+function fmtT(s){const m=Math.floor(s/60),sec=Math.round(s%60);return `${m}:${sec.toString().padStart(2,'0')}`;}
+function fmtNum(n){return n>=1000?(n/1000).toFixed(1)+'K':String(n);}
+function fmtRunTime(iso){const d=new Date(iso);return d.toLocaleString('en-GB',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function toast(msg,type='success'){
+  const c=document.getElementById('toasts');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;el.textContent=msg;
+  c.appendChild(el);setTimeout(()=>el.remove(),4000);
+}
+
+// ── Init ──────────────────────────────────────────────
+async function init(){await loadPlatforms();await loadClips();}
+init();
+setInterval(async()=>{await loadPlatforms();await loadClips();},20000);
+</script>
+</body>
+</html>

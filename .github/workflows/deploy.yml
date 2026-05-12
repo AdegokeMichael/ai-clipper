@@ -1,0 +1,144 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  .github/workflows/deploy.yml
+#
+#  Pipeline:
+#    1. Lint & sanity-check (fast — runs on GitHub runner, no SSH)
+#    2. SSH into production server, pull, rebuild, and do a rolling restart
+#    3. Verify the new container is healthy before declaring success
+#    4. Auto-rollback on failure
+#
+#  Required GitHub Secrets (Settings → Secrets → Actions):
+#    PROD_SSH_HOST      — server IP or domain
+#    PROD_SSH_USER      — e.g. "ubuntu" or "azureuser"
+#    PROD_SSH_KEY       — full private key (contents of .pem file)
+#    PROD_APP_DIR       — absolute path on server, e.g. /home/ubuntu/mrbade-autoposter
+#
+#  Optional:
+#    SLACK_WEBHOOK_URL  — if set, posts deploy success/failure to Slack
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+# Cancel any in-progress deploy for the same branch before starting a new one
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+# Principle of least privilege — only the permissions this workflow actually needs
+permissions:
+  contents: read
+
+jobs:
+
+  # ── Job 1: Lint & Validate ────────────────────────────────────────────────
+  lint:
+    name: Lint & validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install linting tools
+        run: pip install flake8 --quiet
+
+      - name: Lint Python (flake8)
+        run: flake8 app/ --max-line-length=120 --ignore=E501,W503 --count
+
+      - name: Validate Docker Compose files
+        run: |
+          docker compose -f docker-compose.yml config --quiet
+          docker compose -f docker-compose.prod.yml config --quiet
+
+  # ── Job 2: Deploy ─────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    needs: lint          # Deploy only if lint passes
+    environment: production   # Enables environment protection rules in GitHub
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: tag
+        run: echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      # Using the stable major version tag @v1 (maintained by appleboy).
+      # script_stop was removed in v1 — set -euo pipefail in the script achieves the same.
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        env:
+          IMAGE_TAG: ${{ steps.tag.outputs.sha }}
+          BUILD_DATE: ${{ github.event.head_commit.timestamp }}
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          # Pass env vars into the SSH session so docker compose can read them
+          envs: IMAGE_TAG,BUILD_DATE
+          script: |
+            set -euo pipefail
+
+            APP_DIR="${{ secrets.PROD_APP_DIR }}"
+            COMPOSE="docker compose -f docker-compose.prod.yml"
+            PREVIOUS_TAG=$(docker inspect --format='{{.Config.Image}}' brandbade-autoposter 2>/dev/null | cut -d: -f2 || echo "none")
+
+            echo "▶ App dir   : $APP_DIR"
+            echo "▶ New tag   : $IMAGE_TAG"
+            echo "▶ Prev tag  : $PREVIOUS_TAG"
+
+            cd "$APP_DIR"
+
+            echo "── Pulling latest code ──"
+            git fetch --tags origin
+            git pull origin main
+
+            echo "── Building new image (tag: $IMAGE_TAG) ──"
+            export IMAGE_TAG BUILD_DATE
+            $COMPOSE build autoposter
+
+            echo "── Rolling restart (zero-downtime) ──"
+            # Restart app container only — nginx and gdrive-watcher keep running.
+            # Docker will use the new image while the old container drains.
+            $COMPOSE up -d --no-deps autoposter
+
+            echo "── Waiting for health check (up to 60s) ──"
+            for i in $(seq 1 12); do
+              STATUS=$(docker inspect --format='{{.State.Health.Status}}' brandbade-autoposter 2>/dev/null || echo "missing")
+              echo "  Attempt $i/12: $STATUS"
+              if [ "$STATUS" = "healthy" ]; then
+                echo " Container is healthy."
+                break
+              fi
+              if [ "$i" -eq 12 ]; then
+                echo " Health check failed. Rolling back to $PREVIOUS_TAG..."
+                IMAGE_TAG="$PREVIOUS_TAG" $COMPOSE up -d --no-deps autoposter || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            echo "── Restarting gdrive-watcher (uses same image) ──"
+            $COMPOSE up -d --no-deps gdrive-watcher
+
+            echo "── Pruning dangling images ──"
+            docker image prune -f
+
+            echo "── Container status ──"
+            $COMPOSE ps
+
+            echo " Deploy complete — $IMAGE_TAG"
+
+      

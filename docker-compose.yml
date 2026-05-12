@@ -1,0 +1,95 @@
+# 
+#  docker-compose.yml  LOCAL DEVELOPMENT
+#
+#  Usage:
+#    docker compose up --build
+#    docker compose down
+#
+#  Dashboard: http://localhost:8000
+# 
+
+services:
+
+  #  Main application 
+  autoposter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: brandbade-autoposter:dev
+    container_name: brandbade-autoposter-dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent data  survives container restarts and rebuilds
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./overlays:/app/overlays
+      - ./logs:/app/logs
+      # Watch folders
+      - ./gdrive_inbox:/app/gdrive_inbox
+      - ./watch_inbox:/app/watch_inbox
+      - ./watch_processed:/app/watch_processed
+      # Credentials (place files in project root  they are gitignored)
+      - ./gdrive_service_account.json:/app/gdrive_service_account.json:ro
+      - ./youtube_token.json:/app/youtube_token.json
+      - ./client_secret.json:/app/client_secret.json:ro
+      # Whisper model cache  avoids re-downloading on every container start
+      - whisper_cache:/home/appuser/.cache
+    # Tighten PID-1 signal handling: init process forwards SIGTERM properly
+    init: true
+    # Resource guard for local dev  prevents runaway OOM
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 4G
+        reservations:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - app-net
+
+  #  Google Drive watcher 
+  # Polls the configured Drive folder every 30s and downloads new videos.
+  # Reuses the image already built for autoposter  no rebuild needed.
+  gdrive-watcher:
+    image: brandbade-autoposter:dev   #  reuses the image, not a second build
+    container_name: brandbade-gdrive-dev
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["python", "scripts/gdrive_watch.py"]
+    volumes:
+      - ./overlays:/app/overlays
+      - ./logs:/app/logs
+      - ./gdrive_inbox:/app/gdrive_inbox
+      - ./gdrive_service_account.json:/app/gdrive_service_account.json:ro
+      - whisper_cache:/home/appuser/.cache
+    init: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+    depends_on:
+      autoposter:
+        condition: service_healthy
+    networks:
+      - app-net
+
+#  Named volumes 
+volumes:
+  whisper_cache:
+
+#  Shared network 
+networks:
+  app-net:
+    driver: bridge
