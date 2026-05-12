@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  docker-compose.yml — LOCAL DEVELOPMENT
+#  docker-compose.yml — LOCAL DEVELOPMENT.
 #
 #  Usage:
 #    docker compose up --build
