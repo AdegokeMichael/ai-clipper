@@ -10,7 +10,7 @@ Production hardening applied:
   - Error details logged before raising.
 
 Required env vars:
-  FACEBOOK_ACCESS_TOKEN    Long-lived Page Access Token
+  FACEBOOK_ACCESS_TOKEN    Long-lived Page Access Token.
   FACEBOOK_PAGE_ID         Your Facebook Page ID
   FACEBOOK_PUBLIC_BASE_URL Your server's public URL (or falls back to
                            INSTAGRAM_PUBLIC_BASE_URL if set)
