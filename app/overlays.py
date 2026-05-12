@@ -7,7 +7,7 @@ Production hardening applied:
   - Explicit encoding on all file I/O.
   - ffprobe timeout added to _has_alpha().
 
-How it works
+How it works:
 ────────────
 The template PNG acts as a frame with three zones:
 
