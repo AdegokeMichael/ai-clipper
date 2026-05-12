@@ -6,7 +6,7 @@ Production hardening applied:
     no encoding issue, file handle always closed on error.
   - Large file support: files > 64 MB are split into multiple chunks
     (TikTok's API requires chunk_size ≤ 64 MB per chunk).
-  - Timeout raised to 300 s for large video uploads.
+  - Timeout raised to 300s for large video uploads.
   - Status poll retries extended: 20 x 5 s = 100 s max wait.
 
 Required env vars:
