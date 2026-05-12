@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  AI Clipper — Python dependencies
-#  Updated: May 2026
+#  Updated: May 2026.
 #
 #  All versions pinned to the latest stable release at audit time.
 #  Run `pip install -r requirements.txt` inside the Docker build or venv.
